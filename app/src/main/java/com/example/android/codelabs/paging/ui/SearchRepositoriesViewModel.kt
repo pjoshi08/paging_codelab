@@ -20,6 +20,7 @@ import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Transformations
 import android.arch.lifecycle.ViewModel
+import android.arch.paging.PagedList
 import com.example.android.codelabs.paging.data.GithubRepository
 import com.example.android.codelabs.paging.model.Repo
 import com.example.android.codelabs.paging.model.RepoSearchResult
@@ -35,29 +36,20 @@ class SearchRepositoriesViewModel(private val repository: GithubRepository) : Vi
     }
 
     private val queryLiveData = MutableLiveData<String>()
-    private val repoResult: LiveData<RepoSearchResult> = Transformations.map(queryLiveData, {
+    private val repoResult: LiveData<RepoSearchResult> = Transformations.map(queryLiveData) {
         repository.search(it)
-    })
+    }
 
-    val repos: LiveData<List<Repo>> = Transformations.switchMap(repoResult,
-            { it -> it.data })
-    val networkErrors: LiveData<String> = Transformations.switchMap(repoResult,
-            { it -> it.networkErrors })
+    val repos: LiveData<PagedList<Repo>> = Transformations.switchMap(repoResult
+    ) { it -> it.data }
+    val networkErrors: LiveData<String> = Transformations.switchMap(repoResult
+    ) { it -> it.networkErrors }
 
     /**
      * Search a repository based on a query string.
      */
     fun searchRepo(queryString: String) {
         queryLiveData.postValue(queryString)
-    }
-
-    fun listScrolled(visibleItemCount: Int, lastVisibleItemPosition: Int, totalItemCount: Int) {
-        if (visibleItemCount + lastVisibleItemPosition + VISIBLE_THRESHOLD >= totalItemCount) {
-            val immutableQuery = lastQueryValue()
-            if (immutableQuery != null) {
-                repository.requestMore(immutableQuery)
-            }
-        }
     }
 
     /**
